@@ -52,7 +52,6 @@
   .col-obs { width: 250px; font-size: 10px; color: #aaa; }
   .col-edit { width: 60px; text-align: center; }
 
-  /* COLORES DE ESTADO (VISTA WEB) */
   .badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 9px; }
   .bueno { background: rgba(61,184,90,0.2); color: var(--verde); border: 1px solid var(--verde); }
   .regular { background: rgba(245,196,0,0.2); color: var(--amarillo); border: 1px solid var(--amarillo); }
@@ -168,7 +167,6 @@
 </div>
 
 <script>
-// Base de datos actualizada (v6) para incluir la propiedad de cantidad (cant)
 let db = JSON.parse(localStorage.getItem('sdb_inv_v6')) || [
     {id:1, nom:"Rotopercutora", cant: 1, cat:"ELÉCTRICAS", est:"Bueno", act:"14/04", due:"Comprado", quien:"", costo:"", fcomp:"", obs:""},
     {id:2, nom:"Martillo demoledor 6 max", cant: 1, cat:"ELÉCTRICAS", est:"Bueno", act:"06/02", due:"Comprado", quien:"", costo:"", fcomp:"2026-02-06", obs:"NUEVO"},
@@ -188,7 +186,6 @@ function render() {
   const categorias = [...new Set(db.map(x => x.cat.toUpperCase()))].sort();
   
   categorias.forEach(cat => {
-    // colspan ahora es 10 porque agregamos la columna de cantidad
     body.innerHTML += `<tr><td colspan="10" class="separador-cat">${cat}</td></tr>`;
     
     const items = db.filter(x => x.cat.toUpperCase() === cat);
@@ -216,7 +213,7 @@ function abrirCarga() {
   document.getElementById('modal-tit').innerText = "Cargar Elemento";
   document.getElementById('btn-borrar').style.display = 'none';
   document.querySelectorAll('input, textarea').forEach(i => i.value = "");
-  document.getElementById('f-cant').value = "1"; // Por defecto arranca en 1
+  document.getElementById('f-cant').value = "1"; 
   document.getElementById('f-est').value = "Bueno";
   document.getElementById('f-due').value = "Comprado";
   document.getElementById('sec-quien').style.display = 'none';
@@ -296,8 +293,8 @@ function exportarPDF() {
   let tablaHtml = document.getElementById('contenedor-tabla').innerHTML;
   
   el.innerHTML = `
-    <h2 style="color: #000; text-align: center; margin-bottom: 5px;">SDB - REPORTE DE INVENTARIO</h2>
-    <p style="color: #000; text-align: center; margin-top: 0; margin-bottom: 20px; font-size: 12px;">
+    <h2 style="color: #000; text-align: center; margin-bottom: 5px; font-size: 16px;">SDB - REPORTE DE INVENTARIO</h2>
+    <p style="color: #000; text-align: center; margin-top: 0; margin-bottom: 15px; font-size: 10px;">
       <b>Emitido:</b> ${fechaStr} a las ${horaStr}
     </p>
   ` + tablaHtml;
@@ -308,18 +305,18 @@ function exportarPDF() {
   style.innerHTML = `
     * { color: #000 !important; box-sizing: border-box; }
     
-    table { width: 100% !important; max-width: 100% !important; table-layout: auto !important; margin: 0; border-collapse: collapse; font-size: 10px; border: 1px solid #000 !important; }
+    table { width: 100% !important; max-width: 100% !important; table-layout: auto !important; margin: 0; border-collapse: collapse; font-size: 8px; border: 1px solid #000 !important; }
     
-    th, td { border: 1px solid #000 !important; padding: 6px; color: #000 !important; width: auto !important; }
+    th, td { border: 1px solid #000 !important; padding: 4px; color: #000 !important; width: auto !important; word-wrap: break-word; }
     
     th { background-color: #e6e6e6 !important; font-weight: bold !important; text-transform: uppercase; }
     
     td.col-nom { font-weight: bold !important; background-color: #ffffff !important; }
     td.col-cant { text-align: center; font-weight: bold !important; }
     
-    .separador-cat { background-color: #f2f2f2 !important; color: #000 !important; border: 1px solid #000 !important; text-align: center; font-weight: bold !important; padding: 8px; font-size: 12px; }
+    .separador-cat { background-color: #f2f2f2 !important; color: #000 !important; border: 1px solid #000 !important; text-align: center; font-weight: bold !important; padding: 6px; font-size: 10px; }
     
-    .badge { padding: 4px 6px !important; border-radius: 4px !important; font-weight: bold !important; display: block; border: 1px solid #000 !important; text-align: center; }
+    .badge { padding: 3px 4px !important; border-radius: 4px !important; font-weight: bold !important; display: block; border: 1px solid #000 !important; text-align: center; font-size: 7px; }
     .bueno { background-color: #d4edda !important; }
     .regular { background-color: #fff3cd !important; }
     .roto { background-color: #f8d7da !important; }
@@ -329,12 +326,13 @@ function exportarPDF() {
 
   const nombreArchivo = `Reporte_SDB_${fechaStr.replace(/\//g, '-')}.pdf`;
 
+  // ACÁ ESTÁ EL CAMBIO: orientation: 'portrait' (vertical) en lugar de 'landscape' (horizontal)
   html2pdf().set({
-    margin: 10,
+    margin: 8,
     filename: nombreArchivo,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, backgroundColor: '#ffffff' },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
   }).from(el).save();
 }
 
