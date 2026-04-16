@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SDB — Inventario Profesional</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<style>
+  :root { --amarillo: #F5C400; --fondo: #1A1A1A; --sup: #242424; --borde: #3A3A3A; --texto: #F0EDE4; --verde: #3DB85A; --rojo: #E24B4A; --azul: #3498db; --naranja: #e67e22; }
+  
+  html, body { background: var(--fondo); color: var(--texto); font-family: -apple-system, sans-serif; margin: 0; padding: 0; overflow: hidden; height: 100%; position: fixed; width: 100%; }
+
+  #header-fijo { background: var(--sup); border-bottom: 2px solid var(--amarillo); padding: 12px 10px; z-index: 100; }
+  .controles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 10px; }
+  .btn-acc { border: none; padding: 15px 0; border-radius: 6px; font-size: 11px; font-weight: 900; text-transform: uppercase; cursor: pointer; color: white; text-align: center; }
+  .btn-guardar { background: var(--amarillo); color: black; }
+  .btn-pdf { background: var(--verde); }
+
+  #contenedor-tabla { 
+    overflow-x: auto; 
+    overflow-y: auto; 
+    height: calc(100vh - 125px); 
+    -webkit-overflow-scrolling: touch;
+    background: var(--fondo);
+  }
+
+  table { width: 1360px; border-collapse: collapse; font-size: 11px; table-layout: fixed; margin-bottom: 50px; }
+  
+  th { 
+    position: sticky; top: 0; background: #2E2E2E; color: var(--amarillo); 
+    padding: 12px 5px; text-align: left; font-size: 10px; border-bottom: 2px solid var(--borde); 
+    text-transform: uppercase; z-index: 20;
+  }
+
+  .separador-cat { 
+    background: #333; color: var(--amarillo); font-weight: 900; 
+    padding: 8px 10px; font-size: 12px; text-transform: uppercase;
+    border-left: 5px solid var(--amarillo);
+  }
+
+  td { padding: 10px 5px; border-bottom: 1px solid var(--borde); vertical-align: middle; }
+
+  .col-nom { width: 200px; font-weight: bold; position: sticky; left: 0; background: #1A1A1A; z-index: 10; border-right: 1px solid var(--borde); }
+  .col-cant { width: 50px; text-align: center; font-weight: bold; color: var(--amarillo); }
+  .col-est { width: 100px; text-align: center; }
+  .col-act { width: 80px; text-align: center; color: #888; }
+  .col-due { width: 100px; }
+  .col-quien { width: 130px; }
+  .col-costo { width: 90px; }
+  .col-fecha { width: 100px; }
+  .col-obs { width: 250px; font-size: 10px; color: #aaa; }
+  .col-edit { width: 60px; text-align: center; }
+
+  /* COLORES DE ESTADO (VISTA WEB) */
+  .badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 9px; }
+  .bueno { background: rgba(61,184,90,0.2); color: var(--verde); border: 1px solid var(--verde); }
+  .regular { background: rgba(245,196,0,0.2); color: var(--amarillo); border: 1px solid var(--amarillo); }
+  .roto { background: rgba(226,75,74,0.2); color: var(--rojo); border: 1px solid var(--rojo); }
+  .perdido { background: rgba(226,75,74,0.2); color: var(--rojo); border: 1px solid var(--rojo); } 
+
+  #fab { position: fixed; bottom: 20px; right: 20px; width: 55px; height: 55px; background: var(--amarillo); border-radius: 50%; display: flex; justify-content: center; align-items: center; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.6); font-size: 28px; z-index: 100; }
+
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 200; justify-content: center; align-items: center; }
+  .modal { background: var(--sup); width: 90%; max-width: 400px; padding: 20px; border-radius: 12px; border: 1px solid var(--borde); max-height: 90vh; overflow-y: auto; }
+  label { font-size: 10px; color: var(--amarillo); font-weight: bold; display: block; margin-top: 5px; }
+  input, select, textarea { width: 100%; background: #000; color: white; border: 1px solid var(--borde); padding: 12px; margin: 5px 0 15px 0; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<div id="header-fijo">
+  <div class="controles">
+    <button class="btn-acc btn-guardar" onclick="guardarLocal()">Guardar Datos</button>
+    <button class="btn-acc btn-pdf" onclick="exportarPDF()">Generar Reporte PDF</button>
+  </div>
+  <div style="font-size: 11px; color: var(--amarillo); font-weight: bold; padding-left: 5px; text-align: center;">SDB-1165 | INVENTARIO DE HERRAMIENTAS</div>
+</div>
+
+<div id="contenedor-tabla">
+  <table>
+    <thead>
+      <tr>
+        <th class="col-nom">Herramienta</th>
+        <th class="col-cant">Cant.</th>
+        <th class="col-est">Estado</th>
+        <th class="col-act">Act.</th>
+        <th class="col-due">Dueño</th>
+        <th class="col-quien">Prestador</th>
+        <th class="col-costo">Costo</th>
+        <th class="col-fecha">F. Compra</th>
+        <th class="col-obs">Observaciones</th>
+        <th class="col-edit">Acción</th>
+      </tr>
+    </thead>
+    <tbody id="body-tabla"></tbody>
+  </table>
+</div>
+
+<button id="fab" onclick="abrirCarga()">+</button>
+
+<div class="overlay" id="modal-form">
+  <div class="modal">
+    <h3 id="modal-tit" style="color:var(--amarillo); margin-top:0;">Cargar Elemento</h3>
+    
+    <div style="display:grid; grid-template-columns: 3fr 1fr; gap:10px">
+      <div>
+        <label>Nombre del Elemento</label>
+        <input type="text" id="f-nom" placeholder="Ej: Rotopercutora">
+      </div>
+      <div>
+        <label>Cantidad</label>
+        <input type="number" id="f-cant" placeholder="Ej: 1" min="1">
+      </div>
+    </div>
+    
+    <label>Categoría (Elegí o escribí una nueva)</label>
+    <input type="text" id="f-cat" list="lista-categorias" placeholder="Ej: ELÉCTRICAS">
+    <datalist id="lista-categorias">
+      <option value="ELÉCTRICAS"></option>
+      <option value="MANUALES"></option>
+      <option value="SEGURIDAD"></option>
+      <option value="OBRA/VARIOS"></option>
+    </datalist>
+
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px">
+      <div>
+        <label>Estado</label>
+        <select id="f-est">
+          <option value="Bueno">Bueno</option>
+          <option value="Regular">Regular</option>
+          <option value="Roto">Roto</option>
+          <option value="Perdido">Perdido</option>
+        </select>
+      </div>
+      <div>
+        <label>Dueño</label>
+        <select id="f-due" onchange="document.getElementById('sec-quien').style.display = this.value=='Prestado'?'block':'none'">
+          <option value="Comprado">Comprado</option>
+          <option value="Prestado">Prestado</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="sec-quien" style="display:none">
+      <label>Prestador (Quién lo prestó)</label>
+      <input type="text" id="f-quien" placeholder="Nombre">
+    </div>
+
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px">
+      <div>
+        <label>Costo $</label>
+        <input type="number" id="f-costo">
+      </div>
+      <div>
+        <label>Fecha Compra</label>
+        <input type="date" id="f-fcomp">
+      </div>
+    </div>
+
+    <label>Comentarios</label>
+    <textarea id="f-obs" rows="2"></textarea>
+
+    <button class="btn-acc btn-guardar" style="width:100%; padding:15px; font-size:14px" onclick="procesarForm()">CONFIRMAR DATOS</button>
+    <button class="btn-acc" id="btn-borrar" style="width:100%; background:var(--rojo); margin-top:8px; display:none" onclick="eliminarItem()">ELIMINAR PERMANENTE</button>
+    <button onclick="cerrarModal()" style="width:100%; background:none; color:#888; border:none; margin-top:10px">CANCELAR</button>
+  </div>
+</div>
+
+<script>
+// Base de datos actualizada (v6) para incluir la propiedad de cantidad (cant)
+let db = JSON.parse(localStorage.getItem('sdb_inv_v6')) || [
+    {id:1, nom:"Rotopercutora", cant: 1, cat:"ELÉCTRICAS", est:"Bueno", act:"14/04", due:"Comprado", quien:"", costo:"", fcomp:"", obs:""},
+    {id:2, nom:"Martillo demoledor 6 max", cant: 1, cat:"ELÉCTRICAS", est:"Bueno", act:"06/02", due:"Comprado", quien:"", costo:"", fcomp:"2026-02-06", obs:"NUEVO"},
+    {id:3, nom:"Amoladora angular nueva", cant: 1, cat:"ELÉCTRICAS", est:"Bueno", act:"14/04", due:"Comprado", quien:"", costo:"", fcomp:"", obs:"Makita"},
+    {id:4, nom:"Dobladora Φ12/16/25", cant: 1, cat:"MANUALES", est:"Bueno", act:"14/04", due:"Comprado", quien:"", costo:"", fcomp:"", obs:""},
+    {id:5, nom:"Tijera de corte de hierro", cant: 1, cat:"MANUALES", est:"Perdido", act:"14/04", due:"Comprado", quien:"", costo:"", fcomp:"", obs:"PERDIDO"},
+    {id:6, nom:"Arnés con cabo (27/01)", cant: 2, cat:"SEGURIDAD", est:"Bueno", act:"14/04", due:"Comprado", quien:"", costo:"", fcomp:"", obs:""},
+    {id:7, nom:"Puntales Metálicos", cant: 356, cat:"OBRA/VARIOS", est:"Bueno", act:"14/04", due:"Comprado", quien:"", costo:"", fcomp:"", obs:"+35 prestados"}
+];
+
+let idEdit = null;
+
+function render() {
+  const body = document.getElementById('body-tabla');
+  body.innerHTML = "";
+  
+  const categorias = [...new Set(db.map(x => x.cat.toUpperCase()))].sort();
+  
+  categorias.forEach(cat => {
+    // colspan ahora es 10 porque agregamos la columna de cantidad
+    body.innerHTML += `<tr><td colspan="10" class="separador-cat">${cat}</td></tr>`;
+    
+    const items = db.filter(x => x.cat.toUpperCase() === cat);
+    items.forEach(h => {
+      body.innerHTML += `
+        <tr>
+          <td class="col-nom">${h.nom}</td>
+          <td class="col-cant">${h.cant || 1}</td>
+          <td class="col-est"><span class="badge ${h.est.toLowerCase()}">${h.est}</span></td>
+          <td class="col-act">${h.act}</td>
+          <td class="col-due">${h.due || '-'}</td>
+          <td class="col-quien">${h.quien || '-'}</td>
+          <td class="col-costo">$${h.costo || '0'}</td>
+          <td class="col-fecha">${h.fcomp || '-'}</td>
+          <td class="col-obs">${h.obs}</td>
+          <td class="col-edit"><button onclick="abrirEdicion(${h.id})" style="background:var(--sup); border:1px solid #444; color:var(--amarillo); border-radius:4px; padding:4px 8px">EDIT</button></td>
+        </tr>
+      `;
+    });
+  });
+}
+
+function abrirCarga() {
+  idEdit = null;
+  document.getElementById('modal-tit').innerText = "Cargar Elemento";
+  document.getElementById('btn-borrar').style.display = 'none';
+  document.querySelectorAll('input, textarea').forEach(i => i.value = "");
+  document.getElementById('f-cant').value = "1"; // Por defecto arranca en 1
+  document.getElementById('f-est').value = "Bueno";
+  document.getElementById('f-due').value = "Comprado";
+  document.getElementById('sec-quien').style.display = 'none';
+  document.getElementById('modal-form').style.display = 'flex';
+}
+
+function abrirEdicion(id) {
+  idEdit = id;
+  const h = db.find(x => x.id === id);
+  document.getElementById('modal-tit').innerText = "Editar Datos";
+  document.getElementById('btn-borrar').style.display = 'block';
+  document.getElementById('f-nom').value = h.nom;
+  document.getElementById('f-cant').value = h.cant || 1;
+  document.getElementById('f-cat').value = h.cat;
+  document.getElementById('f-est').value = h.est;
+  document.getElementById('f-due').value = h.due || "Comprado";
+  document.getElementById('f-quien').value = h.quien;
+  document.getElementById('f-costo').value = h.costo;
+  document.getElementById('f-fcomp').value = h.fcomp;
+  document.getElementById('f-obs').value = h.obs;
+  
+  document.getElementById('sec-quien').style.display = (h.due === 'Prestado') ? 'block' : 'none';
+  document.getElementById('modal-form').style.display = 'flex';
+}
+
+function procesarForm() {
+  const item = {
+    nom: document.getElementById('f-nom').value,
+    cant: document.getElementById('f-cant').value || 1,
+    cat: document.getElementById('f-cat').value || "OTROS",
+    est: document.getElementById('f-est').value,
+    due: document.getElementById('f-due').value,
+    quien: document.getElementById('f-quien').value,
+    costo: document.getElementById('f-costo').value,
+    fcomp: document.getElementById('f-fcomp').value,
+    obs: document.getElementById('f-obs').value,
+    act: new Date().toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit'})
+  };
+
+  if(!item.nom) return alert("Falta nombre");
+  if(item.due === 'Comprado') item.quien = "";
+
+  if(idEdit) {
+    const idx = db.findIndex(x => x.id === idEdit);
+    db[idx] = { ...db[idx], ...item };
+  } else {
+    item.id = Date.now();
+    db.push(item);
+  }
+  
+  guardarLocal();
+  cerrarModal();
+  render();
+}
+
+function eliminarItem() {
+  if(confirm("¿Eliminar para siempre?")) {
+    db = db.filter(x => x.id !== idEdit);
+    guardarLocal();
+    cerrarModal();
+    render();
+  }
+}
+
+function cerrarModal() { document.getElementById('modal-form').style.display = 'none'; }
+function guardarLocal() { localStorage.setItem('sdb_inv_v6', JSON.stringify(db)); alert("Datos guardados"); }
+
+function exportarPDF() {
+  const fActual = new Date();
+  const fechaStr = fActual.toLocaleDateString('es-AR');
+  const horaStr = fActual.toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'});
+
+  const el = document.createElement('div');
+  el.style.fontFamily = "Arial, sans-serif";
+  el.style.backgroundColor = "#ffffff";
+  
+  let tablaHtml = document.getElementById('contenedor-tabla').innerHTML;
+  
+  el.innerHTML = `
+    <h2 style="color: #000; text-align: center; margin-bottom: 5px;">SDB - REPORTE DE INVENTARIO</h2>
+    <p style="color: #000; text-align: center; margin-top: 0; margin-bottom: 20px; font-size: 12px;">
+      <b>Emitido:</b> ${fechaStr} a las ${horaStr}
+    </p>
+  ` + tablaHtml;
+  
+  el.querySelectorAll('.col-edit').forEach(c => c.remove());
+  
+  const style = document.createElement('style');
+  style.innerHTML = `
+    * { color: #000 !important; box-sizing: border-box; }
+    
+    table { width: 100% !important; max-width: 100% !important; table-layout: auto !important; margin: 0; border-collapse: collapse; font-size: 10px; border: 1px solid #000 !important; }
+    
+    th, td { border: 1px solid #000 !important; padding: 6px; color: #000 !important; width: auto !important; }
+    
+    th { background-color: #e6e6e6 !important; font-weight: bold !important; text-transform: uppercase; }
+    
+    td.col-nom { font-weight: bold !important; background-color: #ffffff !important; }
+    td.col-cant { text-align: center; font-weight: bold !important; }
+    
+    .separador-cat { background-color: #f2f2f2 !important; color: #000 !important; border: 1px solid #000 !important; text-align: center; font-weight: bold !important; padding: 8px; font-size: 12px; }
+    
+    .badge { padding: 4px 6px !important; border-radius: 4px !important; font-weight: bold !important; display: block; border: 1px solid #000 !important; text-align: center; }
+    .bueno { background-color: #d4edda !important; }
+    .regular { background-color: #fff3cd !important; }
+    .roto { background-color: #f8d7da !important; }
+    .perdido { background-color: #f8d7da !important; }
+  `;
+  el.appendChild(style);
+
+  const nombreArchivo = `Reporte_SDB_${fechaStr.replace(/\//g, '-')}.pdf`;
+
+  html2pdf().set({
+    margin: 10,
+    filename: nombreArchivo,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, backgroundColor: '#ffffff' },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+  }).from(el).save();
+}
+
+render();
+</script>
+</body>
+</html>
