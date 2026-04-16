@@ -279,7 +279,26 @@ function eliminarItem() {
 }
 
 function cerrarModal() { document.getElementById('modal-form').style.display = 'none'; }
-function guardarLocal() { localStorage.setItem('sdb_inv_v6', JSON.stringify(db)); alert("Datos guardados"); }
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwJ1SAWHWqTeXagsEt3XkSHCtaGmhR53JYyB2bXf7K9_iVKWMj02P0HpfVqdjKmm0Ea/exec';
+
+async function guardarLocal() {
+  localStorage.setItem('sdb_inv_v6', JSON.stringify(db));
+  
+  try {
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify(db)
+    });
+    const result = await res.json();
+    if (result.ok) {
+      alert("✅ Guardado local y en Google Sheets");
+    } else {
+      alert("⚠️ Guardado local OK, pero error en Sheets: " + result.error);
+    }
+  } catch(err) {
+    alert("⚠️ Guardado local OK, pero no se pudo conectar a Sheets.\n" + err.message);
+  }
+}
 
 function exportarPDF() {
   const fActual = new Date();
