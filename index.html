@@ -167,6 +167,10 @@
 </div>
 
 <script>
+// ─── CONFIGURACIÓN ────────────────────────────────────────────────
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwJ1SAWHWqTeXagsEt3XkSHCtaGmhR53JYyB2bXf7K9_iVKWMj02P0HpfVqdjKmm0Ea/exec'; // ← Reemplazá con tu URL de Apps Script
+// ──────────────────────────────────────────────────────────────────
+
 let db = JSON.parse(localStorage.getItem('sdb_inv_v6')) || [
     {id:1, nom:"Rotopercutora", cant: 1, cat:"ELÉCTRICAS", est:"Bueno", act:"14/04", due:"Comprado", quien:"", costo:"", fcomp:"", obs:""},
     {id:2, nom:"Martillo demoledor 6 max", cant: 1, cat:"ELÉCTRICAS", est:"Bueno", act:"06/02", due:"Comprado", quien:"", costo:"", fcomp:"2026-02-06", obs:"NUEVO"},
@@ -279,22 +283,17 @@ function eliminarItem() {
 }
 
 function cerrarModal() { document.getElementById('modal-form').style.display = 'none'; }
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwJ1SAWHWqTeXagsEt3XkSHCtaGmhR53JYyB2bXf7K9_iVKWMj02P0HpfVqdjKmm0Ea/exec';
 
 async function guardarLocal() {
   localStorage.setItem('sdb_inv_v6', JSON.stringify(db));
-  
+
   try {
-    const res = await fetch(APPS_SCRIPT_URL, {
+    await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
+      mode: 'no-cors',
       body: JSON.stringify(db)
     });
-    const result = await res.json();
-    if (result.ok) {
-      alert("✅ Guardado local y en Google Sheets");
-    } else {
-      alert("⚠️ Guardado local OK, pero error en Sheets: " + result.error);
-    }
+    alert("✅ Guardado local y en Google Sheets");
   } catch(err) {
     alert("⚠️ Guardado local OK, pero no se pudo conectar a Sheets.\n" + err.message);
   }
@@ -323,18 +322,12 @@ function exportarPDF() {
   const style = document.createElement('style');
   style.innerHTML = `
     * { color: #000 !important; box-sizing: border-box; }
-    
     table { width: 100% !important; max-width: 100% !important; table-layout: auto !important; margin: 0; border-collapse: collapse; font-size: 8px; border: 1px solid #000 !important; }
-    
     th, td { border: 1px solid #000 !important; padding: 4px; color: #000 !important; width: auto !important; word-wrap: break-word; }
-    
     th { background-color: #e6e6e6 !important; font-weight: bold !important; text-transform: uppercase; }
-    
     td.col-nom { font-weight: bold !important; background-color: #ffffff !important; }
     td.col-cant { text-align: center; font-weight: bold !important; }
-    
     .separador-cat { background-color: #f2f2f2 !important; color: #000 !important; border: 1px solid #000 !important; text-align: center; font-weight: bold !important; padding: 6px; font-size: 10px; }
-    
     .badge { padding: 3px 4px !important; border-radius: 4px !important; font-weight: bold !important; display: block; border: 1px solid #000 !important; text-align: center; font-size: 7px; }
     .bueno { background-color: #d4edda !important; }
     .regular { background-color: #fff3cd !important; }
@@ -345,7 +338,6 @@ function exportarPDF() {
 
   const nombreArchivo = `Reporte_SDB_${fechaStr.replace(/\//g, '-')}.pdf`;
 
-  // ACÁ ESTÁ EL CAMBIO: orientation: 'portrait' (vertical) en lugar de 'landscape' (horizontal)
   html2pdf().set({
     margin: 8,
     filename: nombreArchivo,
