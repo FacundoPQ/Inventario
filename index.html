@@ -3,41 +3,38 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>SDB — Inventario Profesional</title>
+<title>SDB — Inventario Obra</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
 <style>
-  :root { --amarillo: #F5C400; --fondo: #1A1A1A; --sup: #242424; --borde: #3A3A3A; --texto: #F0EDE4; --verde: #3DB85A; --rojo: #E24B4A; --azul: #3498db; }
+  :root { --amarillo: #F5C400; --fondo: #1A1A1A; --sup: #242424; --borde: #3A3A3A; --texto: #F0EDE4; --verde: #3DB85A; --rojo: #E24B4A; }
   
   html, body { background: var(--fondo); color: var(--texto); font-family: -apple-system, sans-serif; margin: 0; padding: 0; overflow: hidden; height: 100%; position: fixed; width: 100%; }
 
   #header-fijo { background: var(--sup); border-bottom: 2px solid var(--amarillo); padding: 12px 10px; z-index: 100; }
   
-  /* Ajuste a 3 columnas para que entre el nuevo botón */
-  .controles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+  .controles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   
-  .btn-acc { border: none; padding: 15px 0; border-radius: 6px; font-size: 10px; font-weight: 900; text-transform: uppercase; cursor: pointer; color: white; text-align: center; }
+  .btn-acc { border: none; padding: 14px 0; border-radius: 6px; font-size: 11px; font-weight: 900; text-transform: uppercase; cursor: pointer; color: white; text-align: center; }
   .btn-guardar { background: var(--amarillo); color: black; }
   .btn-pdf { background: var(--verde); }
-  .btn-copiar { background: var(--azul); }
 
-  #contenedor-tabla { overflow: auto; height: calc(100vh - 125px); background: var(--fondo); }
+  #contenedor-tabla { overflow: auto; height: calc(100vh - 100px); background: var(--fondo); }
 
-  table { width: 1300px; border-collapse: collapse; font-size: 11px; table-layout: fixed; }
-  th { position: sticky; top: 0; background: #2E2E2E; color: var(--amarillo); padding: 12px 5px; text-align: left; border-bottom: 2px solid var(--borde); z-index: 20; }
-  .separador-cat { background: #333; color: var(--amarillo); font-weight: 900; padding: 8px 10px; border-left: 5px solid var(--amarillo); }
-  td { padding: 10px 5px; border-bottom: 1px solid var(--borde); vertical-align: middle; }
+  table { width: 100%; min-width: 600px; border-collapse: collapse; font-size: 12px; }
+  th { position: sticky; top: 0; background: #2E2E2E; color: var(--amarillo); padding: 10px 5px; text-align: left; border-bottom: 2px solid var(--borde); z-index: 20; }
+  .separador-cat { background: #333; color: var(--amarillo); font-weight: 900; padding: 8px 10px; border-left: 5px solid var(--amarillo); font-size: 13px; }
+  td { padding: 12px 5px; border-bottom: 1px solid var(--borde); vertical-align: middle; }
 
-  .col-nom { width: 200px; font-weight: bold; position: sticky; left: 0; background: #1A1A1A; z-index: 10; border-right: 1px solid var(--borde); }
-  .col-cant { width: 60px; text-align: center; color: var(--amarillo); font-weight: bold; }
-  .badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 9px; }
-  .bueno { background: rgba(61,184,90,0.2); color: var(--verde); border: 1px solid var(--verde); }
-  .roto, .perdido { background: rgba(226,75,74,0.2); color: var(--rojo); border: 1px solid var(--rojo); }
+  .col-nom { font-weight: bold; position: sticky; left: 0; background: #1A1A1A; z-index: 10; border-right: 1px solid var(--borde); width: 140px; }
+  .badge { padding: 4px 6px; border-radius: 4px; font-weight: bold; font-size: 10px; text-transform: uppercase; }
+  .bueno { background: rgba(61,184,90,0.2); color: var(--verde); }
+  .roto, .perdido { background: rgba(226,75,74,0.2); color: var(--rojo); }
 
-  #fab { position: fixed; bottom: 20px; right: 20px; width: 55px; height: 55px; background: var(--amarillo); border-radius: 50%; border: none; font-size: 28px; z-index: 100; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+  #fab { position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px; background: var(--amarillo); border-radius: 50%; border: none; font-size: 32px; z-index: 100; box-shadow: 0 4px 15px rgba(0,0,0,0.5); font-weight: bold; }
   .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 200; justify-content: center; align-items: center; }
-  .modal { background: var(--sup); width: 90%; max-width: 400px; padding: 20px; border-radius: 12px; max-height: 90vh; overflow-y: auto; }
-  input, select, textarea { width: 100%; background: #000; color: white; border: 1px solid var(--borde); padding: 12px; margin: 5px 0 15px 0; border-radius: 6px; box-sizing: border-box; }
+  .modal { background: var(--sup); width: 90%; max-width: 400px; padding: 20px; border-radius: 12px; }
+  input, select, textarea { width: 100%; background: #000; color: white; border: 1px solid var(--borde); padding: 12px; margin: 5px 0 15px 0; border-radius: 6px; box-sizing: border-box; font-size: 16px; /* Evita zoom en iPhone */ }
 </style>
 </head>
 <body>
@@ -45,10 +42,8 @@
 <div id="header-fijo">
   <div class="controles">
     <button class="btn-acc btn-guardar" onclick="guardarLocal()">Guardar Local</button>
-    <button class="btn-acc btn-copiar" onclick="copiarParaSheets()">Copiar p/ Sheets</button>
     <button class="btn-acc btn-pdf" onclick="exportarPDF()">Reporte PDF</button>
   </div>
-  <div style="font-size: 11px; color: var(--amarillo); font-weight: bold; text-align: center;">INVENTARIO SDB - COPIAR Y PEGAR</div>
 </div>
 
 <div id="contenedor-tabla">
@@ -56,13 +51,9 @@
     <thead>
       <tr>
         <th class="col-nom">Herramienta</th>
-        <th class="col-cant">Cant.</th>
-        <th style="width:90px">Estado</th>
-        <th style="width:70px">Act.</th>
-        <th style="width:90px">Dueño</th>
-        <th style="width:110px">Prestador</th>
-        <th style="width:80px">Costo</th>
-        <th style="width:200px">Observaciones</th>
+        <th style="width:40px">Cant</th>
+        <th style="width:80px">Estado</th>
+        <th style="width:120px">Obs</th>
         <th style="width:60px">Acción</th>
       </tr>
     </thead>
@@ -74,20 +65,18 @@
 
 <div class="overlay" id="modal-form">
   <div class="modal">
-    <h3 id="modal-tit" style="color:var(--amarillo)">Cargar Elemento</h3>
-    <label>Nombre</label><input type="text" id="f-nom">
-    <label>Cantidad</label><input type="number" id="f-cant" value="1">
-    <label>Categoría</label><input type="text" id="f-cat" list="lista-cat">
-    <datalist id="lista-cat">
-        <option value="ELÉCTRICAS"><option value="MANUALES"><option value="SEGURIDAD"><option value="OBRA/VARIOS">
-    </datalist>
-    <label>Estado</label>
+    <h3 id="modal-tit" style="color:var(--amarillo); margin-top:0;">Cargar Elemento</h3>
+    <input type="text" id="f-nom" placeholder="Nombre">
+    <input type="number" id="f-cant" placeholder="Cantidad" value="1">
+    <input type="text" id="f-cat" placeholder="Categoría">
     <select id="f-est">
-        <option value="Bueno">Bueno</option><option value="Regular">Regular</option>
-        <option value="Roto">Roto</option><option value="Perdido">Perdido</option>
+        <option value="Bueno">Bueno</option>
+        <option value="Regular">Regular</option>
+        <option value="Roto">Roto</option>
+        <option value="Perdido">Perdido</option>
     </select>
-    <label>Observaciones</label><textarea id="f-obs"></textarea>
-    <button class="btn-acc btn-guardar" style="width:100%; font-size:14px" onclick="procesarForm()">CONFIRMAR DATOS</button>
+    <textarea id="f-obs" placeholder="Observaciones"></textarea>
+    <button class="btn-acc btn-guardar" style="width:100%; font-size:14px" onclick="procesarForm()">CONFIRMAR</button>
     <button onclick="cerrarModal()" style="width:100%; background:none; color:gray; border:none; margin-top:10px">CANCELAR</button>
   </div>
 </div>
@@ -99,111 +88,37 @@ let idEdit = null;
 function render() {
   const body = document.getElementById('body-tabla');
   body.innerHTML = "";
-  const categorias = [...new Set(db.map(x => x.cat.toUpperCase()))].sort();
+  
+  if (db.length === 0) {
+    body.innerHTML = "<tr><td colspan='5' style='text-align:center; padding:30px; color:gray;'>No hay herramientas cargadas.</td></tr>";
+    return;
+  }
+
+  const categorias = [...new Set(db.map(x => (x.cat || "OTROS").toUpperCase()))].sort();
   
   categorias.forEach(cat => {
-    body.innerHTML += `<tr><td colspan="9" class="separador-cat">${cat}</td></tr>`;
-    db.filter(x => x.cat.toUpperCase() === cat).forEach(h => {
+    body.innerHTML += `<tr><td colspan="5" class="separador-cat">${cat}</td></tr>`;
+    db.filter(x => (x.cat || "OTROS").toUpperCase() === cat).forEach(h => {
       body.innerHTML += `
         <tr>
           <td class="col-nom">${h.nom}</td>
-          <td class="col-cant">${h.cant || 1}</td>
+          <td style="color:var(--amarillo); font-weight:bold; text-align:center;">${h.cant || 1}</td>
           <td><span class="badge ${h.est.toLowerCase()}">${h.est}</span></td>
-          <td style="color:#777">${h.act}</td>
-          <td>${h.due || 'Comprado'}</td>
-          <td>${h.quien || '-'}</td>
-          <td>$${h.costo || '0'}</td>
-          <td style="font-size:10px; color:#aaa">${h.obs}</td>
-          <td><button onclick="abrirEdicion(${h.id})" style="background:#333; color:var(--amarillo); border:1px solid #555; border-radius:4px; padding:4px">EDIT</button></td>
+          <td style="font-size:10px; color:#aaa; line-height:1.2;">${h.obs || '-'}</td>
+          <td><button onclick="abrirEdicion(${h.id})" style="background:#333; color:var(--amarillo); border:1px solid #555; border-radius:4px; padding:8px 5px; width:100%;">EDIT</button></td>
         </tr>`;
     });
   });
 }
 
-// --- FUNCIÓN CLAVE: COPIAR PARA SHEETS ---
-async function copiarParaSheets() {
-  if (db.length === 0) return alert("No hay datos para copiar");
-
-  // 1. Armamos la versión de Texto (Por si pegás en el Bloc de Notas)
-  let textoPlano = "Herramienta\tCantidad\tEstado\tActualización\tDueño\tPrestador\tCosto\tObservaciones\n";
-  
-  // 2. Armamos la versión HTML (La que lee Google Sheets con diseño)
-  let html = `<table style="border-collapse: collapse; font-family: Arial, sans-serif;">
-                <thead>
-                  <tr>
-                    <th style="background-color: #333333; color: #F5C400; padding: 8px; border: 1px solid #000;">Herramienta</th>
-                    <th style="background-color: #333333; color: #F5C400; padding: 8px; border: 1px solid #000;">Cant.</th>
-                    <th style="background-color: #333333; color: #F5C400; padding: 8px; border: 1px solid #000;">Estado</th>
-                    <th style="background-color: #333333; color: #F5C400; padding: 8px; border: 1px solid #000;">Act.</th>
-                    <th style="background-color: #333333; color: #F5C400; padding: 8px; border: 1px solid #000;">Dueño</th>
-                    <th style="background-color: #333333; color: #F5C400; padding: 8px; border: 1px solid #000;">Prestador</th>
-                    <th style="background-color: #333333; color: #F5C400; padding: 8px; border: 1px solid #000;">Costo</th>
-                    <th style="background-color: #333333; color: #F5C400; padding: 8px; border: 1px solid #000;">Observaciones</th>
-                  </tr>
-                </thead>
-                <tbody>`;
-
-  const categorias = [...new Set(db.map(x => x.cat.toUpperCase()))].sort();
-
-  categorias.forEach(cat => {
-    // FILA DE SEPARACIÓN (CATEGORÍA) - Fondo gris claro, letra negra gruesa centrada
-    textoPlano += `--- ${cat} ---\t\t\t\t\t\t\t\n`;
-    html += `<tr>
-              <td colspan="8" style="background-color: #e0e0e0; color: #000; font-weight: bold; text-align: center; padding: 8px; border: 1px solid #000; font-size: 14px;">
-                ${cat}
-              </td>
-             </tr>`;
-
-    const herramientasCat = db.filter(x => x.cat.toUpperCase() === cat);
-    
-    herramientasCat.forEach(h => {
-      textoPlano += `${h.nom}\t${h.cant || 1}\t${h.est}\t${h.act}\t${h.due || 'Comprado'}\t${h.quien || '-'}\t${h.costo || '0'}\t${h.obs || ''}\n`;
-      
-      // Lógica para pintar la celda de Estado según cómo esté la herramienta
-      let colorFondoEst = h.est === "Bueno" ? "#d4edda" : (h.est === "Regular" ? "#fff3cd" : "#f8d7da");
-      let colorTextoEst = h.est === "Bueno" ? "#155724" : (h.est === "Regular" ? "#856404" : "#721c24");
-
-      // FILA DE HERRAMIENTA
-      html += `<tr>
-                <td style="border: 1px solid #000; padding: 5px; font-weight: bold;">${h.nom}</td>
-                <td style="border: 1px solid #000; padding: 5px; text-align: center; color: #e67e22; font-weight: bold;">${h.cant || 1}</td>
-                <td style="border: 1px solid #000; padding: 5px; text-align: center; background-color: ${colorFondoEst}; color: ${colorTextoEst}; font-weight: bold;">${h.est}</td>
-                <td style="border: 1px solid #000; padding: 5px; text-align: center; color: #555;">${h.act}</td>
-                <td style="border: 1px solid #000; padding: 5px;">${h.due || 'Comprado'}</td>
-                <td style="border: 1px solid #000; padding: 5px;">${h.quien || '-'}</td>
-                <td style="border: 1px solid #000; padding: 5px;">$${h.costo || '0'}</td>
-                <td style="border: 1px solid #000; padding: 5px; color: #555; font-size: 11px;">${h.obs || ''}</td>
-               </tr>`;
-    });
-  });
-
-  html += `</tbody></table>`;
-
-  // 3. Escribimos en el portapapeles (API Moderna)
-  try {
-    const blobText = new Blob([textoPlano], { type: "text/plain" });
-    const blobHtml = new Blob([html], { type: "text/html" });
-    
-    const data = [new ClipboardItem({
-        ["text/plain"]: blobText,
-        ["text/html"]: blobHtml
-    })];
-
-    await navigator.clipboard.write(data);
-    alert("📋 ¡Copiado con FORMATO! Pegalo en tu Google Sheets.");
-  } catch (err) {
-    console.error(err);
-    alert("❌ Error al copiar formato avanzado. Asegurate de estar usando Chrome o Edge actualizados.");
-  }
-}
 function guardarLocal() {
   localStorage.setItem('sdb_inv_v6', JSON.stringify(db));
-  alert("💾 Guardado en la memoria del celular");
+  alert("💾 Guardado en el teléfono");
 }
 
 function abrirCarga() { 
   idEdit = null; 
-  document.querySelectorAll('input, textarea').forEach(i => i.value = "");
+  document.querySelectorAll('#modal-form input, #modal-form textarea').forEach(i => i.value = "");
   document.getElementById('f-cant').value = "1";
   document.getElementById('modal-form').style.display = 'flex'; 
 }
@@ -224,17 +139,16 @@ function procesarForm() {
     id: idEdit || Date.now(),
     nom: document.getElementById('f-nom').value,
     cant: document.getElementById('f-cant').value,
-    cat: document.getElementById('f-cat').value.toUpperCase() || "OTROS",
+    cat: (document.getElementById('f-cat').value || "OTROS").toUpperCase(),
     est: document.getElementById('f-est').value,
-    obs: document.getElementById('f-obs').value,
-    act: new Date().toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit'})
+    obs: document.getElementById('f-obs').value
   };
   
-  if(!item.nom) return alert("Poné un nombre");
+  if(!item.nom) return alert("El nombre es obligatorio");
 
   if(idEdit) {
     const idx = db.findIndex(x => x.id === idEdit);
-    db[idx] = {...db[idx], ...item};
+    db[idx] = item;
   } else { db.push(item); }
   
   guardarLocal();
