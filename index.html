@@ -121,24 +121,37 @@ function render() {
 }
 
 // --- FUNCIÓN CLAVE: COPIAR PARA SHEETS ---
-function copiarParaSheets() {
+  function copiarParaSheets() {
   if (db.length === 0) return alert("No hay datos para copiar");
 
-  // Encabezados para que el Sheets sepa qué es cada cosa
+  // Encabezados de las columnas
   let texto = "Herramienta\tCantidad\tEstado\tActualización\tDueño\tPrestador\tCosto\tObservaciones\n";
 
-  // Generar filas separadas por Tabulaciones (\t)
-  db.sort((a, b) => a.cat.localeCompare(b.cat)).forEach(h => {
-    texto += `${h.nom}\t${h.cant}\t${h.est}\t${h.act}\t${h.due || 'Comprado'}\t${h.quien || '-'}\t${h.costo || '0'}\t${h.obs || ''}\n`;
+  // Obtenemos las categorías únicas y las ordenamos
+  const categorias = [...new Set(db.map(x => x.cat.toUpperCase()))].sort();
+
+  categorias.forEach(cat => {
+    // 1. Agregamos una fila que sirve de SEPARADOR (el nombre de la categoría)
+    // Usamos tabulaciones vacías para que el resto de las celdas de esa fila queden en blanco
+    texto += `--- ${cat} ---\t\t\t\t\t\t\t\n`;
+
+    // 2. Filtramos las herramientas de esa categoría y las agregamos abajo
+    const herramientasCat = db.filter(x => x.cat.toUpperCase() === cat);
+    
+    herramientasCat.forEach(h => {
+      texto += `${h.nom}\t${h.cant || 1}\t${h.est}\t${h.act}\t${h.due || 'Comprado'}\t${h.quien || '-'}\t${h.costo || '0'}\t${h.obs || ''}\n`;
+    });
+
+    // 3. Opcional: Agregamos una fila vacía al final de cada categoría para que respire el diseño
+    texto += "\t\t\t\t\t\t\t\n";
   });
 
   navigator.clipboard.writeText(texto).then(() => {
-    alert("📋 ¡Copiado! Ahora abrí Google Sheets y apretá Pegar (Ctrl+V).");
+    alert("📋 ¡Copiado con secciones! Pegalo en el Sheets.");
   }).catch(err => {
     alert("Error al copiar: " + err);
   });
 }
-
 function guardarLocal() {
   localStorage.setItem('sdb_inv_v6', JSON.stringify(db));
   alert("💾 Guardado en la memoria del celular");
