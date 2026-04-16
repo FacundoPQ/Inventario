@@ -121,36 +121,80 @@ function render() {
 }
 
 // --- FUNCIÓN CLAVE: COPIAR PARA SHEETS ---
-  function copiarParaSheets() {
+async function copiarParaSheets() {
   if (db.length === 0) return alert("No hay datos para copiar");
 
-  // Encabezados de las columnas
-  let texto = "Herramienta\tCantidad\tEstado\tActualización\tDueño\tPrestador\tCosto\tObservaciones\n";
+  // 1. Armamos la versión de Texto (Por si pegás en el Bloc de Notas)
+  let textoPlano = "Herramienta\tCantidad\tEstado\tActualización\tDueño\tPrestador\tCosto\tObservaciones\n";
+  
+  // 2. Armamos la versión HTML (La que lee Google Sheets con diseño)
+  let html = `<table style="border-collapse: collapse; font-family: Arial, sans-serif;">
+                <thead>
+                  <tr>
+                    <th style="background-color: #333333; color: #F5C400; padding: 8px; border: 1px solid #000;">Herramienta</th>
+                    <th style="background-color: #333333; color: #F5C400; padding: 8px; border: 1px solid #000;">Cant.</th>
+                    <th style="background-color: #333333; color: #F5C400; padding: 8px; border: 1px solid #000;">Estado</th>
+                    <th style="background-color: #333333; color: #F5C400; padding: 8px; border: 1px solid #000;">Act.</th>
+                    <th style="background-color: #333333; color: #F5C400; padding: 8px; border: 1px solid #000;">Dueño</th>
+                    <th style="background-color: #333333; color: #F5C400; padding: 8px; border: 1px solid #000;">Prestador</th>
+                    <th style="background-color: #333333; color: #F5C400; padding: 8px; border: 1px solid #000;">Costo</th>
+                    <th style="background-color: #333333; color: #F5C400; padding: 8px; border: 1px solid #000;">Observaciones</th>
+                  </tr>
+                </thead>
+                <tbody>`;
 
-  // Obtenemos las categorías únicas y las ordenamos
   const categorias = [...new Set(db.map(x => x.cat.toUpperCase()))].sort();
 
   categorias.forEach(cat => {
-    // 1. Agregamos una fila que sirve de SEPARADOR (el nombre de la categoría)
-    // Usamos tabulaciones vacías para que el resto de las celdas de esa fila queden en blanco
-    texto += `--- ${cat} ---\t\t\t\t\t\t\t\n`;
+    // FILA DE SEPARACIÓN (CATEGORÍA) - Fondo gris claro, letra negra gruesa centrada
+    textoPlano += `--- ${cat} ---\t\t\t\t\t\t\t\n`;
+    html += `<tr>
+              <td colspan="8" style="background-color: #e0e0e0; color: #000; font-weight: bold; text-align: center; padding: 8px; border: 1px solid #000; font-size: 14px;">
+                ${cat}
+              </td>
+             </tr>`;
 
-    // 2. Filtramos las herramientas de esa categoría y las agregamos abajo
     const herramientasCat = db.filter(x => x.cat.toUpperCase() === cat);
     
     herramientasCat.forEach(h => {
-      texto += `${h.nom}\t${h.cant || 1}\t${h.est}\t${h.act}\t${h.due || 'Comprado'}\t${h.quien || '-'}\t${h.costo || '0'}\t${h.obs || ''}\n`;
+      textoPlano += `${h.nom}\t${h.cant || 1}\t${h.est}\t${h.act}\t${h.due || 'Comprado'}\t${h.quien || '-'}\t${h.costo || '0'}\t${h.obs || ''}\n`;
+      
+      // Lógica para pintar la celda de Estado según cómo esté la herramienta
+      let colorFondoEst = h.est === "Bueno" ? "#d4edda" : (h.est === "Regular" ? "#fff3cd" : "#f8d7da");
+      let colorTextoEst = h.est === "Bueno" ? "#155724" : (h.est === "Regular" ? "#856404" : "#721c24");
+
+      // FILA DE HERRAMIENTA
+      html += `<tr>
+                <td style="border: 1px solid #000; padding: 5px; font-weight: bold;">${h.nom}</td>
+                <td style="border: 1px solid #000; padding: 5px; text-align: center; color: #e67e22; font-weight: bold;">${h.cant || 1}</td>
+                <td style="border: 1px solid #000; padding: 5px; text-align: center; background-color: ${colorFondoEst}; color: ${colorTextoEst}; font-weight: bold;">${h.est}</td>
+                <td style="border: 1px solid #000; padding: 5px; text-align: center; color: #555;">${h.act}</td>
+                <td style="border: 1px solid #000; padding: 5px;">${h.due || 'Comprado'}</td>
+                <td style="border: 1px solid #000; padding: 5px;">${h.quien || '-'}</td>
+                <td style="border: 1px solid #000; padding: 5px;">$${h.costo || '0'}</td>
+                <td style="border: 1px solid #000; padding: 5px; color: #555; font-size: 11px;">${h.obs || ''}</td>
+               </tr>`;
     });
-
-    // 3. Opcional: Agregamos una fila vacía al final de cada categoría para que respire el diseño
-    texto += "\t\t\t\t\t\t\t\n";
   });
 
-  navigator.clipboard.writeText(texto).then(() => {
-    alert("📋 ¡Copiado con secciones! Pegalo en el Sheets.");
-  }).catch(err => {
-    alert("Error al copiar: " + err);
-  });
+  html += `</tbody></table>`;
+
+  // 3. Escribimos en el portapapeles (API Moderna)
+  try {
+    const blobText = new Blob([textoPlano], { type: "text/plain" });
+    const blobHtml = new Blob([html], { type: "text/html" });
+    
+    const data = [new ClipboardItem({
+        ["text/plain"]: blobText,
+        ["text/html"]: blobHtml
+    })];
+
+    await navigator.clipboard.write(data);
+    alert("📋 ¡Copiado con FORMATO! Pegalo en tu Google Sheets.");
+  } catch (err) {
+    console.error(err);
+    alert("❌ Error al copiar formato avanzado. Asegurate de estar usando Chrome o Edge actualizados.");
+  }
 }
 function guardarLocal() {
   localStorage.setItem('sdb_inv_v6', JSON.stringify(db));
