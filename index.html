@@ -178,31 +178,23 @@
 <script>
 // CONFIGURACIÓN FIREBASE
 const firebaseConfig = {
-  apiKey: "AIzaSyBJhILgy73gfyS1xH0gFgrJuR99iCxGTaM",
-  authDomain: "inventario-de-herramient-df83f.firebaseapp.com",
-  projectId: "inventario-de-herramient-df83f",
-  storageBucket: "inventario-de-herramient-df83f.firebasestorage.app",
-  messagingSenderId: "336675042754",
-  appId: "1:336675042754:web:95d45e0252f7be4fe0525b",
-  measurementId: "G-91SEGE8063"
+    apiKey: "AIzaSyCcjAZZnfjheX9s9qyZzKdua80aCKlhZrA",
+    authDomain: "asistencia-sdb.firebaseapp.com",
+    projectId: "asistencia-sdb",
+    storageBucket: "asistencia-sdb.firebasestorage.app",
+    messagingSenderId: "965527629930",
+    appId: "1:965527629930:web:ff0a0680bea61b04b65a13",
+    measurementId: "G-SYHE29L9H3",
+    databaseURL: "https://asistencia-sdb-default-rtdb.firebaseio.com"
 };
 
 firebase.initializeApp(firebaseConfig);
 const dbRef = firebase.database().ref('sdb/inventario_v6');
 
-let db = [
-    {id:1, nom:"Rotopercutora", cant: 1, cat:"ELÉCTRICAS", est:"Bueno", act:"14/04", due:"Comprado", quien:"", costo:"", fcomp:"", obs:""},
-    {id:2, nom:"Martillo demoledor 6 max", cant: 1, cat:"ELÉCTRICAS", est:"Bueno", act:"06/02", due:"Comprado", quien:"", costo:"", fcomp:"2026-02-06", obs:"NUEVO"},
-    {id:3, nom:"Amoladora angular nueva", cant: 1, cat:"ELÉCTRICAS", est:"Bueno", act:"14/04", due:"Comprado", quien:"", costo:"", fcomp:"", obs:"Makita"},
-    {id:4, nom:"Dobladora Φ12/16/25", cant: 1, cat:"MANUALES", est:"Bueno", act:"14/04", due:"Comprado", quien:"", costo:"", fcomp:"", obs:""},
-    {id:5, nom:"Tijera de corte de hierro", cant: 1, cat:"MANUALES", est:"Perdido", act:"14/04", due:"Comprado", quien:"", costo:"", fcomp:"", obs:"PERDIDO"},
-    {id:6, nom:"Arnés con cabo (27/01)", cant: 2, cat:"SEGURIDAD", est:"Bueno", act:"14/04", due:"Comprado", quien:"", costo:"", fcomp:"", obs:""},
-    {id:7, nom:"Puntales Metálicos", cant: 356, cat:"OBRA/VARIOS", est:"Bueno", act:"14/04", due:"Comprado", quien:"", costo:"", fcomp:"", obs:"+35 prestados"}
-];
-
+let db = [];
 let idEdit = null;
 
-// ESCUCHA FIREBASE
+// ESCUCHA FIREBASE (SINCRONIZACIÓN AUTOMÁTICA)
 dbRef.on('value', snap => {
     const status = document.getElementById('sync-status');
     if(snap.exists()){
@@ -211,6 +203,11 @@ dbRef.on('value', snap => {
         status.textContent = "En línea";
         status.className = "status-ok";
     } else {
+        // Carga inicial por defecto si la base está vacía
+        db = [
+            {id:1, nom:"Rotopercutora", cant: 1, cat:"ELÉCTRICAS", est:"Bueno", act:"14/04", due:"Comprado", quien:"", costo:"", fcomp:"", obs:""},
+            {id:2, nom:"Martillo demoledor 6 max", cant: 1, cat:"ELÉCTRICAS", est:"Bueno", act:"06/02", due:"Comprado", quien:"", costo:"", fcomp:"2026-02-06", obs:"NUEVO"}
+        ];
         dbRef.set(db);
     }
 });
@@ -218,12 +215,12 @@ dbRef.on('value', snap => {
 function render() {
   const body = document.getElementById('body-tabla');
   body.innerHTML = "";
-  
+  if(!db || db.length === 0) return;
+
   const categorias = [...new Set(db.map(x => x.cat.toUpperCase()))].sort();
   
   categorias.forEach(cat => {
     body.innerHTML += `<tr><td colspan="10" class="separador-cat">${cat}</td></tr>`;
-    
     const items = db.filter(x => x.cat.toUpperCase() === cat);
     items.forEach(h => {
       body.innerHTML += `
@@ -270,14 +267,13 @@ function abrirEdicion(id) {
   document.getElementById('f-costo').value = h.costo;
   document.getElementById('f-fcomp').value = h.fcomp;
   document.getElementById('f-obs').value = h.obs;
-  
   document.getElementById('sec-quien').style.display = (h.due === 'Prestado') ? 'block' : 'none';
   document.getElementById('modal-form').style.display = 'flex';
 }
 
 function procesarForm() {
   const item = {
-    nom: document.getElementById('f-nom').value.replace(/\./g, ""), // Limpieza de puntos
+    nom: document.getElementById('f-nom').value.replace(/\./g, ""), 
     cant: document.getElementById('f-cant').value || 1,
     cat: document.getElementById('f-cat').value.toUpperCase() || "OTROS",
     est: document.getElementById('f-est').value,
@@ -294,20 +290,14 @@ function procesarForm() {
 
   if(idEdit) {
     const idx = db.findIndex(x => x.id === idEdit);
-    db[idx] = { ...db[idx], ...item };
+    db[idx] = { ...db[idx], ...item, id: idEdit };
   } else {
     item.id = Date.now();
     db.push(item);
   }
   
-function guardarWeb() {
-    dbRef.set(db).then(() => {
-        alert("¡Datos guardados con éxito en la nube! ✅");
-    }).catch((error) => {
-        alert("Error al guardar: " + error.message);
-    });
-}
-
+  guardarWeb(true); // Pasamos true para que avise al cerrar el formulario
+  cerrarModal();
 }
 
 function eliminarItem() {
@@ -320,9 +310,12 @@ function eliminarItem() {
 
 function cerrarModal() { document.getElementById('modal-form').style.display = 'none'; }
 
-function guardarWeb() {
+// FUNCIÓN DE GUARDADO CON ALERTA RECUPERADA
+function guardarWeb(silencioso = false) {
     dbRef.set(db).then(() => {
-        if(!idEdit) alert("Datos guardados en la nube");
+        alert("¡Datos guardados con éxito en la nube! ✅");
+    }).catch((error) => {
+        alert("Error al guardar: " + error.message);
     });
 }
 
@@ -334,7 +327,6 @@ function exportarPDF() {
   const el = document.createElement('div');
   el.style.fontFamily = "Arial, sans-serif";
   el.style.backgroundColor = "#ffffff";
-  
   let tablaHtml = document.getElementById('contenedor-tabla').innerHTML;
   
   el.innerHTML = `
@@ -349,30 +341,20 @@ function exportarPDF() {
   const style = document.createElement('style');
   style.innerHTML = `
     * { color: #000 !important; box-sizing: border-box; }
-    table { width: 100% !important; max-width: 100% !important; table-layout: auto !important; margin: 0; border-collapse: collapse; font-size: 8px; border: 1px solid #000 !important; }
-    th, td { border: 1px solid #000 !important; padding: 4px; color: #000 !important; width: auto !important; word-wrap: break-word; }
-    th { background-color: #e6e6e6 !important; font-weight: bold !important; text-transform: uppercase; }
-    td.col-nom { font-weight: bold !important; background-color: #ffffff !important; }
-    td.col-cant { text-align: center; font-weight: bold !important; }
-    .separador-cat { background-color: #f2f2f2 !important; color: #000 !important; border: 1px solid #000 !important; text-align: center; font-weight: bold !important; padding: 6px; font-size: 10px; }
-    .badge { padding: 3px 4px !important; border-radius: 4px !important; font-weight: bold !important; display: block; border: 1px solid #000 !important; text-align: center; font-size: 7px; }
-    .bueno { background-color: #d4edda !important; }
-    .regular { background-color: #fff3cd !important; }
-    .roto { background-color: #f8d7da !important; }
-    .perdido { background-color: #f8d7da !important; }
+    table { width: 100% !important; border-collapse: collapse; font-size: 8px; border: 1px solid #000 !important; }
+    th, td { border: 1px solid #000 !important; padding: 4px; color: #000 !important; }
+    th { background-color: #e6e6e6 !important; font-weight: bold !important; }
+    .separador-cat { background-color: #f2f2f2 !important; font-weight: bold !important; text-align: center; padding: 6px; }
+    .badge { border: 1px solid #000 !important; padding: 2px; display: block; text-align: center; }
   `;
   el.appendChild(style);
 
   html2pdf().set({
     margin: 8,
     filename: `Reporte_Inventario_SDB_${fechaStr.replace(/\//g, '-')}.pdf`,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, backgroundColor: '#ffffff' },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
   }).from(el).save();
 }
-
-render();
 </script>
 </body>
 </html>
