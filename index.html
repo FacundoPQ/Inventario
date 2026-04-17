@@ -300,8 +300,14 @@ function procesarForm() {
     db.push(item);
   }
   
-  guardarWeb();
-  cerrarModal();
+function guardarWeb() {
+    dbRef.set(db).then(() => {
+        alert("¡Datos guardados con éxito en la nube! ✅");
+    }).catch((error) => {
+        alert("Error al guardar: " + error.message);
+    });
+}
+
 }
 
 function eliminarItem() {
