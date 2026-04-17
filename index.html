@@ -6,6 +6,9 @@
 <title>SDB — Inventario Profesional</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+
 <style>
   :root { --amarillo: #F5C400; --fondo: #1A1A1A; --sup: #242424; --borde: #3A3A3A; --texto: #F0EDE4; --verde: #3DB85A; --rojo: #E24B4A; --azul: #3498db; --naranja: #e67e22; }
   
@@ -64,13 +67,19 @@
   .modal { background: var(--sup); width: 90%; max-width: 400px; padding: 20px; border-radius: 12px; border: 1px solid var(--borde); max-height: 90vh; overflow-y: auto; }
   label { font-size: 10px; color: var(--amarillo); font-weight: bold; display: block; margin-top: 5px; }
   input, select, textarea { width: 100%; background: #000; color: white; border: 1px solid var(--borde); padding: 12px; margin: 5px 0 15px 0; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+
+  #sync-status { position: fixed; top: 5px; right: 8px; font-size: 9px; font-weight: bold; z-index: 200; padding: 2px 6px; border-radius: 4px; }
+  .status-ok { background: rgba(61,184,90,0.2); color: var(--verde); }
+  .status-loading { background: rgba(245,196,0,0.2); color: var(--amarillo); }
 </style>
 </head>
 <body>
 
+<div id="sync-status" class="status-loading">Conectando...</div>
+
 <div id="header-fijo">
   <div class="controles">
-    <button class="btn-acc btn-guardar" onclick="guardarLocal()">Guardar Datos</button>
+    <button class="btn-acc btn-guardar" onclick="guardarWeb()">Guardar Datos</button>
     <button class="btn-acc btn-pdf" onclick="exportarPDF()">Generar Reporte PDF</button>
   </div>
   <div style="font-size: 11px; color: var(--amarillo); font-weight: bold; padding-left: 5px; text-align: center;">SDB-1165 | INVENTARIO DE HERRAMIENTAS</div>
@@ -167,7 +176,21 @@
 </div>
 
 <script>
-let db = JSON.parse(localStorage.getItem('sdb_inv_v6')) || [
+// CONFIGURACIÓN FIREBASE
+const firebaseConfig = {
+  apiKey: "AIzaSyBJhILgy73gfyS1xH0gFgrJuR99iCxGTaM",
+  authDomain: "inventario-de-herramient-df83f.firebaseapp.com",
+  projectId: "inventario-de-herramient-df83f",
+  storageBucket: "inventario-de-herramient-df83f.firebasestorage.app",
+  messagingSenderId: "336675042754",
+  appId: "1:336675042754:web:95d45e0252f7be4fe0525b",
+  measurementId: "G-91SEGE8063"
+};
+
+firebase.initializeApp(firebaseConfig);
+const dbRef = firebase.database().ref('sdb/inventario_v6');
+
+let db = [
     {id:1, nom:"Rotopercutora", cant: 1, cat:"ELÉCTRICAS", est:"Bueno", act:"14/04", due:"Comprado", quien:"", costo:"", fcomp:"", obs:""},
     {id:2, nom:"Martillo demoledor 6 max", cant: 1, cat:"ELÉCTRICAS", est:"Bueno", act:"06/02", due:"Comprado", quien:"", costo:"", fcomp:"2026-02-06", obs:"NUEVO"},
     {id:3, nom:"Amoladora angular nueva", cant: 1, cat:"ELÉCTRICAS", est:"Bueno", act:"14/04", due:"Comprado", quien:"", costo:"", fcomp:"", obs:"Makita"},
@@ -178,6 +201,19 @@ let db = JSON.parse(localStorage.getItem('sdb_inv_v6')) || [
 ];
 
 let idEdit = null;
+
+// ESCUCHA FIREBASE
+dbRef.on('value', snap => {
+    const status = document.getElementById('sync-status');
+    if(snap.exists()){
+        db = snap.val();
+        render();
+        status.textContent = "En línea";
+        status.className = "status-ok";
+    } else {
+        dbRef.set(db);
+    }
+});
 
 function render() {
   const body = document.getElementById('body-tabla');
@@ -212,7 +248,7 @@ function abrirCarga() {
   idEdit = null;
   document.getElementById('modal-tit').innerText = "Cargar Elemento";
   document.getElementById('btn-borrar').style.display = 'none';
-  document.querySelectorAll('input, textarea').forEach(i => i.value = "");
+  document.querySelectorAll('#modal-form input, #modal-form textarea').forEach(i => i.value = "");
   document.getElementById('f-cant').value = "1"; 
   document.getElementById('f-est').value = "Bueno";
   document.getElementById('f-due').value = "Comprado";
@@ -241,9 +277,9 @@ function abrirEdicion(id) {
 
 function procesarForm() {
   const item = {
-    nom: document.getElementById('f-nom').value,
+    nom: document.getElementById('f-nom').value.replace(/\./g, ""), // Limpieza de puntos
     cant: document.getElementById('f-cant').value || 1,
-    cat: document.getElementById('f-cat').value || "OTROS",
+    cat: document.getElementById('f-cat').value.toUpperCase() || "OTROS",
     est: document.getElementById('f-est').value,
     due: document.getElementById('f-due').value,
     quien: document.getElementById('f-quien').value,
@@ -264,22 +300,25 @@ function procesarForm() {
     db.push(item);
   }
   
-  guardarLocal();
+  guardarWeb();
   cerrarModal();
-  render();
 }
 
 function eliminarItem() {
   if(confirm("¿Eliminar para siempre?")) {
     db = db.filter(x => x.id !== idEdit);
-    guardarLocal();
+    guardarWeb();
     cerrarModal();
-    render();
   }
 }
 
 function cerrarModal() { document.getElementById('modal-form').style.display = 'none'; }
-function guardarLocal() { localStorage.setItem('sdb_inv_v6', JSON.stringify(db)); alert("Datos guardados"); }
+
+function guardarWeb() {
+    dbRef.set(db).then(() => {
+        if(!idEdit) alert("Datos guardados en la nube");
+    });
+}
 
 function exportarPDF() {
   const fActual = new Date();
@@ -304,18 +343,12 @@ function exportarPDF() {
   const style = document.createElement('style');
   style.innerHTML = `
     * { color: #000 !important; box-sizing: border-box; }
-    
     table { width: 100% !important; max-width: 100% !important; table-layout: auto !important; margin: 0; border-collapse: collapse; font-size: 8px; border: 1px solid #000 !important; }
-    
     th, td { border: 1px solid #000 !important; padding: 4px; color: #000 !important; width: auto !important; word-wrap: break-word; }
-    
     th { background-color: #e6e6e6 !important; font-weight: bold !important; text-transform: uppercase; }
-    
     td.col-nom { font-weight: bold !important; background-color: #ffffff !important; }
     td.col-cant { text-align: center; font-weight: bold !important; }
-    
     .separador-cat { background-color: #f2f2f2 !important; color: #000 !important; border: 1px solid #000 !important; text-align: center; font-weight: bold !important; padding: 6px; font-size: 10px; }
-    
     .badge { padding: 3px 4px !important; border-radius: 4px !important; font-weight: bold !important; display: block; border: 1px solid #000 !important; text-align: center; font-size: 7px; }
     .bueno { background-color: #d4edda !important; }
     .regular { background-color: #fff3cd !important; }
@@ -324,12 +357,9 @@ function exportarPDF() {
   `;
   el.appendChild(style);
 
-  const nombreArchivo = `Reporte_SDB_${fechaStr.replace(/\//g, '-')}.pdf`;
-
-  // ACÁ ESTÁ EL CAMBIO: orientation: 'portrait' (vertical) en lugar de 'landscape' (horizontal)
   html2pdf().set({
     margin: 8,
-    filename: nombreArchivo,
+    filename: `Reporte_Inventario_SDB_${fechaStr.replace(/\//g, '-')}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, backgroundColor: '#ffffff' },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
